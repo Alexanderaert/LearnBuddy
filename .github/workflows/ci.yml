@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -15,34 +14,58 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: secret
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: homestead_test
           MYSQL_USER: homestead
-          MYSQL_PASSWORD: secret
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        # Запускает MySQL с базой homestead_test, используя секреты для паролей.
 
     steps:
       - uses: actions/checkout@v3
+        # Клонирует репозиторий.
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
           extensions: mbstring, xml, ctype, iconv, mysql
+        # Устанавливает PHP 8.2 и расширения.
 
       - name: Install Composer Dependencies
         run: composer install --no-progress --no-suggest --prefer-dist
+        # Устанавливает зависимости Composer, создавая vendor/.
 
-      - name: Copy .env
-        run: cp .env.testing .env
+      - name: Create .env file
+        run: |
+          echo "APP_NAME=LearnBuddy" >> .env
+          echo "APP_ENV=testing" >> .env
+          echo "APP_KEY=" >> .env
+          echo "APP_DEBUG=true" >> .env
+          echo "APP_URL=http://localhost" >> .env
+          echo "DB_CONNECTION=mysql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=3306" >> .env
+          echo "DB_DATABASE=homestead_test" >> .env
+          echo "DB_USERNAME=homestead" >> .env
+          echo "DB_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
+        # Создает .env файл с конфигурацией, используя пароль из GitHub Secrets.
 
       - name: Generate App Key
         run: php artisan key:generate
+        # Генерирует APP_KEY.
 
       - name: Run Migrations
         run: php artisan migrate --database=mysql
+        # Выполняет миграции.
 
       - name: Run Tests
         run: php artisan test
+        # Запускает тесты.
+
+      - name: Show test logs on failure
+        if: failure()
+        run: cat storage/logs/laravel.log
+        # Выводит логи Laravel, если тесты падают.
