@@ -12,6 +12,7 @@ yarn-debug.log
 Homestead.json
 Homestead.yaml
 auth.json
+/storage
 /storage/*.key
 /storage/export/
 /public/storage

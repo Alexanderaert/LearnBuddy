@@ -21,22 +21,18 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-        # Запускает MySQL с базой homestead_test, используя секреты для паролей.
 
     steps:
       - uses: actions/checkout@v3
-        # Клонирует репозиторий.
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
           extensions: mbstring, xml, ctype, iconv, mysql
-        # Устанавливает PHP 8.2 и расширения.
 
       - name: Install Composer Dependencies
         run: composer install --no-progress --no-suggest --prefer-dist
-        # Устанавливает зависимости Composer, создавая vendor/.
 
       - name: Create .env file
         run: |
@@ -51,21 +47,48 @@ jobs:
           echo "DB_DATABASE=homestead_test" >> .env
           echo "DB_USERNAME=homestead" >> .env
           echo "DB_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
-        # Создает .env файл с конфигурацией, используя пароль из GitHub Secrets.
+          echo "LOG_CHANNEL=single" >> .env
 
       - name: Generate App Key
         run: php artisan key:generate
-        # Генерирует APP_KEY.
+
+      - name: Create storage directories
+        run: |
+          mkdir -p storage/logs
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          chmod -R 775 storage
+
+      - name: Check MySQL
+        run: mysqladmin -u homestead -p${{ secrets.MYSQL_PASSWORD }} -h 127.0.0.1 ping
 
       - name: Run Migrations
-        run: php artisan migrate --database=mysql
-        # Выполняет миграции.
+        run: php artisan migrate --database=mysql --verbose
 
       - name: Run Tests
         run: php artisan test
-        # Запускает тесты.
+
+      - name: Debug test failure
+        if: failure()
+        run: |
+          echo "PHP Version:"
+          php -v
+          echo "Composer Dependencies:"
+          composer show
+          echo "Environment Variables:"
+          env
+          echo "Database Connection Test:"
+          mysql -u homestead -p${{ secrets.MYSQL_PASSWORD }} -h 127.0.0.1 -e "SHOW DATABASES;"
+          echo "Storage Directory Contents:"
+          ls -la storage/
+          ls -la storage/logs/
 
       - name: Show test logs on failure
         if: failure()
-        run: cat storage/logs/laravel.log
-        # Выводит логи Laravel, если тесты падают.
+        run: |
+          if [ -f storage/logs/laravel.log ]; then
+            cat storage/logs/laravel.log
+          else
+            echo "Log file storage/logs/laravel.log does not exist."
+          fi
