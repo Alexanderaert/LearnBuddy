@@ -12,7 +12,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:8.0.39
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: homestead_test
@@ -20,10 +20,16 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mysqladmin ping" --health-interval=20s --health-timeout=10s --health-retries=5
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Verify repository contents
+        run: ls -la
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -31,8 +37,17 @@ jobs:
           php-version: "8.2"
           extensions: mbstring, xml, ctype, iconv, mysql
 
+      - name: Verify PHP Version
+        run: php -v
+
       - name: Install Composer Dependencies
-        run: composer install --no-progress --no-suggest --prefer-dist
+        run: |
+          if [ -f composer.json ]; then
+            composer install --no-progress --no-suggest --prefer-dist
+          else
+            echo "composer.json not found"
+            exit 1
+          fi
 
       - name: Create .env file
         run: |
@@ -64,7 +79,7 @@ jobs:
         run: mysqladmin -u homestead -p${{ secrets.MYSQL_PASSWORD }} -h 127.0.0.1 ping
 
       - name: Run Migrations
-        run: php artisan migrate --database=mysql --verbose
+        run: php artisan migrate --database=mysql --verbose || (cat storage/logs/laravel.log && exit 1)
 
       - name: Run Tests
         run: php artisan test
@@ -75,14 +90,14 @@ jobs:
           echo "PHP Version:"
           php -v
           echo "Composer Dependencies:"
-          composer show
+          composer show || echo "No composer dependencies"
           echo "Environment Variables:"
           env
           echo "Database Connection Test:"
-          mysql -u homestead -p${{ secrets.MYSQL_PASSWORD }} -h 127.0.0.1 -e "SHOW DATABASES;"
+          mysql -u homestead -p${{ secrets.MYSQL_PASSWORD }} -h 127.0.0.1 -e "SHOW DATABASES;" || echo "Database connection failed"
           echo "Storage Directory Contents:"
-          ls -la storage/
-          ls -la storage/logs/
+          ls -la storage/ || echo "Storage directory not found"
+          ls -la storage/logs/ || echo "Logs directory not found"
 
       - name: Show test logs on failure
         if: failure()
