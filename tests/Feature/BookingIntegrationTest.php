@@ -13,38 +13,36 @@ class BookingIntegrationTest extends TestCase
 
     public function test_student_can_book_mentor_schedule()
     {
-        $mentor = User::create([
-            'name' => 'Mentor',
-            'email' => 'mentor@example.com',
-            'password' => bcrypt('password123'),
-            'is_mentor' => true,
-        ]);
-        $student = User::create([
-            'name' => 'Student',
-            'email' => 'student@example.com',
-            'password' => bcrypt('password123'),
-            'is_mentor' => false,
-        ]);
-        $schedule = Schedule::create([
+        $mentor = User::factory()->create(['is_mentor' => true]);
+        $student = User::factory()->create(['is_mentor' => false]);
+
+        $startTime = now()->addDays(1)->startOfHour()->format('Y-m-d H:i:s');
+        $endTime = now()->addDays(1)->startOfHour()->addHours(1)->format('Y-m-d H:i:s');
+
+        Schedule::create([
             'mentor_id' => $mentor->id,
-            'start_time' => '2025-05-04 10:00:00',
-            'end_time' => '2025-05-04 11:00:00',
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'status' => 'available',
         ]);
 
         $token = $student->createToken('auth_token')->plainTextToken;
 
         $response = $this->withHeaders([
             'Authorization' => "Bearer $token",
+            'Accept' => 'application/json'
         ])->postJson("/api/mentors/{$mentor->id}/book", [
-            'start_time' => '2025-05-04 10:00:00',
-            'end_time' => '2025-05-04 11:00:00',
+            'start_time' => $startTime,
+            'end_time' => $endTime,
         ]);
 
         $response->assertStatus(201);
+
         $this->assertDatabaseHas('bookings', [
             'student_id' => $student->id,
             'mentor_id' => $mentor->id,
-            'start_time' => '2025-05-04 10:00:00',
+            'start_time' => $startTime,
+            'end_time' => $endTime,
         ]);
     }
 }
