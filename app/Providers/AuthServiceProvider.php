@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Material;
+use App\Models\User;
 use App\Policies\MentorPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -25,6 +27,14 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('is-mentor', function ($user) {
+            return $user->is_mentor;
+        });
+
+        Gate::define('access-material', function (User $user, Material $material) {
+            return $user->bookingsAsStudent()->where('mentor_id', $material->mentor_id)->exists();
+        });
+
+        Gate::define('upload-material', function (User $user) {
             return $user->is_mentor;
         });
     }

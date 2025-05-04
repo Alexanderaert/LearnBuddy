@@ -123,7 +123,7 @@ class MessageTest extends TestCase
         $receiver = User::factory()->create();
 
         // Создаём бронирование
-        $booking = $sender->bookingsAsStudent()->create([
+        $sender->bookingsAsStudent()->create([
             'mentor_id' => $receiver->id,
             'start_time' => '2025-05-04 10:00:00',
             'end_time' => '2025-05-04 11:00:00',

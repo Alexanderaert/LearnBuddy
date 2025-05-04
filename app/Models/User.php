@@ -71,4 +71,9 @@ class User extends Authenticatable
         $this->average_rating = $average ? round($average, 1) : null;
         $this->save();
     }
+
+    public function materials()
+    {
+        return $this->hasMany(Material::class, 'mentor_id');
+    }
 }

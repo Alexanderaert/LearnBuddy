@@ -63,6 +63,7 @@ jobs:
           echo "DB_USERNAME=homestead" >> .env
           echo "DB_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> .env
           echo "LOG_CHANNEL=single" >> .env
+          echo "FILESYSTEM_DISK=public" >> .env
 
       - name: Generate App Key
         run: php artisan key:generate
@@ -73,7 +74,9 @@ jobs:
           mkdir -p storage/framework/cache
           mkdir -p storage/framework/sessions
           mkdir -p storage/framework/views
+          mkdir -p storage/app/public/materials  # Добавлено создание папки для материалов
           chmod -R 775 storage
+          php artisan storage:link  # Создаем симлинк для доступа к файлам
 
       - name: Check MySQL
         run: mysqladmin -u homestead -p${{ secrets.MYSQL_PASSWORD }} -h 127.0.0.1 ping
@@ -98,6 +101,8 @@ jobs:
           echo "Storage Directory Contents:"
           ls -la storage/ || echo "Storage directory not found"
           ls -la storage/logs/ || echo "Logs directory not found"
+          ls -la storage/app/public/ || echo "Public storage directory not found"
+          ls -la public/storage/ || echo "Storage symlink not found"
 
       - name: Show test logs on failure
         if: failure()
