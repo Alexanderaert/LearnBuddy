@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Str;
 
 class UserFactory extends Factory
 {
@@ -17,7 +16,7 @@ class UserFactory extends Factory
             'email' => $this->faker->unique()->safeEmail(),
             'password' => bcrypt('password123'),
             'is_mentor' => $this->faker->boolean(),
-            'remember_token' => Str::random(10),
+            'average_rating' => $this->faker->boolean() ? $this->faker->randomFloat(1, 1, 5) : null,
         ];
     }
 }

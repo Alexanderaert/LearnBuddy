@@ -1,26 +1,29 @@
 <?php
-
+// src/app/Http/Controllers/Api/ReviewController.php
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreReviewRequest;
-use App\Services\ReviewService;
+use App\Models\Review;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class ReviewController extends Controller
 {
-    protected $reviewService;
-
-    public function __construct(ReviewService $reviewService)
+    public function store(Request $request): JsonResponse
     {
-        $this->reviewService = $reviewService;
-    }
+        $validated = $request->validate([
+            'mentor_id' => 'required|exists:users,id',
+            'comment' => 'required|string|max:1000',
+            'rating' => 'required|integer|min:1|max:5',
+        ]);
 
-    public function store(StoreReviewRequest $request): JsonResponse
-    {
-        /** @var \App\Models\User $user */
-        $user = auth()->user();
-        $review = $this->reviewService->createReview($request->validated(), $user->id);
+        $review = Review::create([
+            'mentor_id' => $validated['mentor_id'],
+            'student_id' => $request->user()->id,
+            'comment' => $validated['comment'],
+            'rating' => $validated['rating'],
+        ]);
+
         return response()->json([
             'message' => 'Review created successfully',
             'data' => $review,
